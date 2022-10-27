@@ -21,6 +21,7 @@ namespace bustub {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::GetValue(KeyType key, KeyComparator cmp, std::vector<ValueType> *result) {
+  // 这有一段废话，测试git
   for (uint32_t bucket_idx = 0; bucket_idx < BUCKET_ARRAY_SIZE; bucket_idx++) {
     auto now_key = array_[bucket_idx].first;
     if (IsReadable(bucket_idx) && cmp(now_key, key) == 0) {
