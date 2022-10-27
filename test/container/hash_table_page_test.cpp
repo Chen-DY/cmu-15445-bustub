@@ -23,7 +23,7 @@
 namespace bustub {
 
 // NOLINTNEXTLINE
-TEST(HashTablePageTest, DISABLED_DirectoryPageSampleTest) {
+TEST(HashTablePageTest, DirectoryPageSampleTest) {
   DiskManager *disk_manager = new DiskManager("test.db");
   auto *bpm = new BufferPoolManagerInstance(5, disk_manager);
 
@@ -57,7 +57,7 @@ TEST(HashTablePageTest, DISABLED_DirectoryPageSampleTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(HashTablePageTest, DISABLED_BucketPageSampleTest) {
+TEST(HashTablePageTest, BucketPageSampleTest) {
   DiskManager *disk_manager = new DiskManager("test.db");
   auto *bpm = new BufferPoolManagerInstance(5, disk_manager);
 
@@ -75,14 +75,21 @@ TEST(HashTablePageTest, DISABLED_BucketPageSampleTest) {
   // check for the inserted pairs
   for (unsigned i = 0; i < 10; i++) {
     EXPECT_EQ(i, bucket_page->KeyAt(i));
+    // std::cout << "debug1  " << bucket_page->KeyAt(i) << std::endl;
+    // std::cout << "debug1  " << bucket_page->IsOccupied(i) << std::endl;
+    // std::cout << "debug1  " << bucket_page->IsReadable(i) << std::endl;
     EXPECT_EQ(i, bucket_page->ValueAt(i));
+    // std::cout << "debug2  " << bucket_page->ValueAt(i) << std::endl;
   }
 
   // remove a few pairs
   for (unsigned i = 0; i < 10; i++) {
     if (i % 2 == 1) {
+      std::cout << "debug3 " << i << std::endl;
       assert(bucket_page->Remove(i, i, IntComparator()));
+      std::cout << "debug344444444 " << i << std::endl;
     }
+    std::cout << "debug4 " << i << std::endl;
   }
 
   // check for the flags
