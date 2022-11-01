@@ -60,24 +60,17 @@ bool HASH_TABLE_BUCKET_TYPE::Insert(KeyType key, ValueType value, KeyComparator 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::Remove(KeyType key, ValueType value, KeyComparator cmp) {
   for (uint32_t bucket_idx = 0; bucket_idx < BUCKET_ARRAY_SIZE; ++bucket_idx) {
-    std::cout << "debug-occupied" << occupied_[bucket_idx] << std::endl;
     if (!IsOccupied(bucket_idx)) {
       break;
     }
-    std::cout << "debug1-1  " << IsOccupied(bucket_idx) << std::endl;
-    std::cout << "debug1-2  " << IsReadable(bucket_idx) << std::endl;
-    std::cout << "debug1-3  " << bucket_idx << std::endl;
     bool flag = IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value;
-    std::cout << "dddddddddddddddd  " << flag << std::endl;
     if (IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value) {
       char &c = readable_[bucket_idx / 8];
       uint32_t pos = bucket_idx % 8;
       c &= ~(1 << (7 - pos));
-      std::cout << "debugReMove Ture" << std::endl;
       return true;
     }
   }
-  std::cout << "debugReMove false" << std::endl;
   return false;
 }
 
