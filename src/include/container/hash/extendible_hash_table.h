@@ -102,6 +102,7 @@ class ExtendibleHashTable {
    *
    * DirectoryIndex = Hash(key) & GLOBAL_DEPTH_MASK
    *
+   * LSB:least significant bit 最低有效位
    * where GLOBAL_DEPTH_MASK is a mask with exactly GLOBAL_DEPTH 1's from LSB
    * upwards.  For example, global depth 3 corresponds to 0x00000007 in a 32-bit
    * representation.
