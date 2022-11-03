@@ -85,11 +85,11 @@ TEST(HashTablePageTest, BucketPageSampleTest) {
   // remove a few pairs
   for (unsigned i = 0; i < 10; i++) {
     if (i % 2 == 1) {
-      std::cout << "debug3 " << i << std::endl;
+//      std::cout << "debug3 " << i << std::endl;
       assert(bucket_page->Remove(i, i, IntComparator()));
-      std::cout << "debug344444444 " << i << std::endl;
+//      std::cout << "debug344444444 " << i << std::endl;
     }
-    std::cout << "debug4 " << i << std::endl;
+//    std::cout << "debug4 " << i << std::endl;
   }
 
   // check for the flags

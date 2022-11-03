@@ -27,9 +27,15 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
-  //  this is a test!
-  //  this is nnnn
-  Page *page = buffer_pool_manager->NewPage(&directory_page_id_);
+
+  //  申请一个目录页
+  Page *page = buffer_pool_manager->NewPage(&directory_page_id_); // 此时directory_page_id_已经被赋值
+  HashTableDirectoryPage *dir_page = reinterpret_cast<HashTableDirectoryPage *>(page->GetData());
+  dir_page->SetPageId(directory_page_id_);
+
+  //  申请一个桶页面
+
+
 
 }
 
@@ -50,7 +56,7 @@ uint32_t HASH_TABLE_TYPE::Hash(KeyType key) {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 inline uint32_t HASH_TABLE_TYPE::KeyToDirectoryIndex(KeyType key, HashTableDirectoryPage *dir_page) {
-  // 什么是directoryIndex？   
+  // 什么是directoryIndex？
   // 什么是GLOBAL_DEPTH_MASK?  
   // 为什么这个 DirectoryIndex = Hash(key) & GLOBAL_DEPTH_MASK？
   return Hash(key) & dir_page->GetGlobalDepthMask();
