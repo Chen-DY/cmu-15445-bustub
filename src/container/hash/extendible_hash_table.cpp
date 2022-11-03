@@ -27,6 +27,8 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
+  //  this is a test!
+  //  this is nnnn
   Page *page = buffer_pool_manager->NewPage(&directory_page_id_);
 
 }
