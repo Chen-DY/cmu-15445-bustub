@@ -27,7 +27,8 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
-  Page *page = buffer_pool_manager->NewPage(directory_page_id_);
+  Page *page = buffer_pool_manager->NewPage(&directory_page_id_);
+
 }
 
 /*****************************************************************************
@@ -47,7 +48,8 @@ uint32_t HASH_TABLE_TYPE::Hash(KeyType key) {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 inline uint32_t HASH_TABLE_TYPE::KeyToDirectoryIndex(KeyType key, HashTableDirectoryPage *dir_page) {
-  // 什么是directoryIndex？ 什么是GLOBAL_DEPTH_MASK? 
+  // 什么是directoryIndex？   
+  // 什么是GLOBAL_DEPTH_MASK?  
   // 为什么这个 DirectoryIndex = Hash(key) & GLOBAL_DEPTH_MASK？
   return Hash(key) & dir_page->GetGlobalDepthMask();
 }
@@ -59,12 +61,16 @@ inline uint32_t HASH_TABLE_TYPE::KeyToPageId(KeyType key, HashTableDirectoryPage
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 HashTableDirectoryPage *HASH_TABLE_TYPE::FetchDirectoryPage() {
-  return nullptr;
+  Page *page = buffer_pool_manager_->FetchPage(directory_page_id_);
+  // 注意GetData(), 去除多余不必要的信息。 然后强制转换为HashTableDirectoryPage
+  // data_ : The actual data that is stored within a page
+  return reinterpret_cast<HashTableDirectoryPage *>(page->GetData());
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 HASH_TABLE_BUCKET_TYPE *HASH_TABLE_TYPE::FetchBucketPage(page_id_t bucket_page_id) {
-  return nullptr;
+  Page* page = buffer_pool_manager_->FetchPage(bucket_page_id);
+  return reinterpret_cast<HASH_TABLE_BUCKET_TYPE *>(page->GetData());
 }
 
 /*****************************************************************************
@@ -72,7 +78,11 @@ HASH_TABLE_BUCKET_TYPE *HASH_TABLE_TYPE::FetchBucketPage(page_id_t bucket_page_i
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std::vector<ValueType> *result) {
-  return false;
+  HashTableDirectoryPage *dir_page = FetchDirectoryPage();
+  uint32_t bucket_page_id = KeyToPageId(key, dir_page);
+  HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
+  bool ret = bucket_page->GetValue(key, comparator_, result);
+  return ret;
 }
 
 /*****************************************************************************
