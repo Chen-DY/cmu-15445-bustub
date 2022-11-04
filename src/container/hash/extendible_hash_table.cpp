@@ -27,16 +27,21 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
-
   //  申请一个目录页
   Page *page = buffer_pool_manager->NewPage(&directory_page_id_); // 此时directory_page_id_已经被赋值
   HashTableDirectoryPage *dir_page = reinterpret_cast<HashTableDirectoryPage *>(page->GetData());
   dir_page->SetPageId(directory_page_id_);
 
   //  申请一个桶页面
+  page_id_t bucket_page_id;
+  Page *page1 = buffer_pool_manager->NewPage(&bucket_page_id);
+  HASH_TABLE_BUCKET_TYPE *bucket_page = reinterpret_cast<HASH_TABLE_BUCKET_TYPE *>(page1->GetData());
 
+  dir_page->SetBucketPageId(0, bucket_page_id);
+  dir_page->SetLocalDepth(0, 0);
 
-
+  buffer_pool_manager->UnpinPage(directory_page_id_, true);
+  buffer_pool_manager->UnpinPage(directory_page_id_, false);
 }
 
 /*****************************************************************************
@@ -87,10 +92,16 @@ HASH_TABLE_BUCKET_TYPE *HASH_TABLE_TYPE::FetchBucketPage(page_id_t bucket_page_i
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std::vector<ValueType> *result) {
   HashTableDirectoryPage *dir_page = FetchDirectoryPage();
-  uint32_t bucket_page_id = KeyToPageId(key, dir_page);
+  page_id_t bucket_page_id = KeyToPageId(key, dir_page);
   HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
-  bool ret = bucket_page->GetValue(key, comparator_, result);
-  return ret;
+  table_latch_.RLock();
+
+  bool flag = bucket_page->GetValue(key, comparator_, result);
+
+  buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+  buffer_pool_manager_->UnpinPage(bucket_page_id, false);
+
+  return flag;
 }
 
 /*****************************************************************************
@@ -98,6 +109,7 @@ bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::Insert(Transaction *transaction, const KeyType &key, const ValueType &value) {
+
   return false;
 }
 
