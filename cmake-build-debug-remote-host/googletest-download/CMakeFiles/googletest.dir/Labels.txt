@@ -1,0 +1,14 @@
+# Target labels
+ googletest
+# Source files and their labels
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/CMakeFiles/googletest
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/CMakeFiles/googletest.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/CMakeFiles/googletest-complete.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-install.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-download.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-update.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-patch.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-configure.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-build.rule
+/root/cmu-15445-bustub/cmake-build-debug-remote-host/googletest-download/googletest-prefix/src/googletest-stamp/googletest-test.rule

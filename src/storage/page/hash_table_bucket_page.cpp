@@ -63,7 +63,7 @@ bool HASH_TABLE_BUCKET_TYPE::Remove(KeyType key, ValueType value, KeyComparator 
     if (!IsOccupied(bucket_idx)) {
       break;
     }
-//    bool flag = IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value;
+    //    bool flag = IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value;
     if (IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value) {
       char &c = readable_[bucket_idx / 8];
       uint32_t pos = bucket_idx % 8;

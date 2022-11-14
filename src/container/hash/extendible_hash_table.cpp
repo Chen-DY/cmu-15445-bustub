@@ -28,6 +28,8 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
   //  申请一个目录页
+
+
   Page *page = buffer_pool_manager->NewPage(&directory_page_id_); // 此时directory_page_id_已经被赋值
   HashTableDirectoryPage *dir_page = reinterpret_cast<HashTableDirectoryPage *>(page->GetData());
   dir_page->SetPageId(directory_page_id_);
@@ -99,6 +101,7 @@ bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std
 
   HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
 
+
   // 拿到值，通过指针返回
   bool flag = bucket_page->GetValue(key, comparator_, result);
 
@@ -151,7 +154,7 @@ bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, 
     page_id_t bucket_page_id = dir_page->GetBucketPageId(bucket_idx);
     HASH_TABLE_BUCKET_TYPE *old_bucket_page = FetchBucketPage(bucket_page_id);
     // 初始化新分裂的bucket_page_id
-    page_id_t new_bucket_page_id;
+    page_id_t new_bucket_page_id = INVALID_PAGE_ID;
     uint32_t new_bucket_idx;
     // 申请一个桶页面
     Page *page = buffer_pool_manager_->NewPage(&new_bucket_page_id);
@@ -192,7 +195,7 @@ bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, 
         }
         
         if (is_free) {
-            bool res = Insert(transaction, key, value);
+            old_bucket_page->Insert(key, value, comparator_);
             flag = true;
         }
         buffer_pool_manager_->UnpinPage(bucket_page_id, is_free);
@@ -242,7 +245,7 @@ bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, 
     }
     buffer_pool_manager_->UnpinPage(directory_page_id_, true);
 
-    if (flag) {
+    if (!flag) {
         return SplitInsert(transaction, key, value);
     }
     return true;
@@ -260,6 +263,10 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
     HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
 
     flag = bucket_page->Remove(key, value, comparator_);
+
+    // 为什么是false
+    buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+    buffer_pool_manager_->UnpinPage(bucket_page_id, flag);
     if (flag) {
         Merge(transaction, key, value);
     }
@@ -271,7 +278,61 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
 void HASH_TABLE_TYPE::Merge(Transaction *transaction, const KeyType &key, const ValueType &value) {
+    HashTableDirectoryPage *dir_page = FetchDirectoryPage();
+    uint32_t bucket_idx = KeyToDirectoryIndex(key, dir_page);
+    uint32_t merge_bucket_idx;
+    page_id_t bucket_page_id = dir_page->GetBucketPageId(bucket_idx);
+    page_id_t merge_bucket_page_id = INVALID_PAGE_ID;
+    HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
+//    HASH_TABLE_BUCKET_TYPE *merge_bucket_page = nullptr;
+    bool is_merge = false;
+    bool is_dirty = false;
 
+    while (true) {
+        //      There are three conditions under which we skip the merge:
+        //   * 1. The bucket is no longer empty.
+        //   * 2. The bucket has local depth 0.
+        //   * 3. The bucket's local depth doesn't match its split image's local depth.
+        if (bucket_page->IsEmpty() && dir_page->GetLocalDepth(bucket_idx) > 0) {
+            // 得到要合并的 bucket_idx,并通过idx找到page_id 以及 page
+            merge_bucket_idx = dir_page->GetSplitImageIndex(bucket_idx);
+            merge_bucket_page_id = dir_page->GetBucketPageId(merge_bucket_idx);
+//            merge_bucket_page = FetchBucketPage(merge_bucket_page_id);
+
+            if (dir_page->GetLocalDepth(bucket_idx) == dir_page->GetLocalDepth(merge_bucket_idx)) {
+
+                uint32_t size = dir_page->Size();
+                // 将原来保存的数据重置
+                for (uint32_t bucket_i = 0; bucket_i < size; ++bucket_i) {
+                    // 开始合并
+                    is_merge = true;
+                    is_dirty = true;
+                    page_id_t cur_page_id = dir_page->GetBucketPageId(bucket_i);
+
+                    if (cur_page_id == bucket_page_id || cur_page_id == merge_bucket_page_id) {
+                        dir_page->SetBucketPageId(bucket_i, merge_bucket_page_id);
+                        dir_page->IncrLocalDepth(bucket_i);
+                    }
+                }
+            }
+        }
+        buffer_pool_manager_->UnpinPage(bucket_page_id, false);
+        if (is_merge) {
+            // 合并之后记得删除不需要的页面
+            buffer_pool_manager_->DeletePage(bucket_page_id);
+            // 判断是否可以收缩directory
+            if (dir_page->CanShrink()) {
+                dir_page->DecrGlobalDepth();
+                // 相当于减少一位
+                bucket_idx = bucket_idx & dir_page->GetGlobalDepthMask();
+            } else {
+                bucket_idx = merge_bucket_idx;
+            }
+        } else {
+            break;
+        }
+        buffer_pool_manager_->UnpinPage(directory_page_id_, is_dirty);
+    }
 }
 
 /*****************************************************************************
