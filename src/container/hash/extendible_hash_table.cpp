@@ -27,11 +27,7 @@ HASH_TABLE_TYPE::ExtendibleHashTable(const std::string &name, BufferPoolManager 
                                      const KeyComparator &comparator, HashFunction<KeyType> hash_fn)
     : buffer_pool_manager_(buffer_pool_manager), comparator_(comparator), hash_fn_(std::move(hash_fn)) {
   //  implement me!
-
-
   //  申请一个目录页
-
-
   Page *page = buffer_pool_manager->NewPage(&directory_page_id_); // 此时directory_page_id_已经被赋值
   HashTableDirectoryPage *dir_page = reinterpret_cast<HashTableDirectoryPage *>(page->GetData());
   dir_page->SetPageId(directory_page_id_);
@@ -97,20 +93,23 @@ HASH_TABLE_BUCKET_TYPE *HASH_TABLE_TYPE::FetchBucketPage(page_id_t bucket_page_i
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std::vector<ValueType> *result) {
+  table_latch_.RLock();
   HashTableDirectoryPage *dir_page = FetchDirectoryPage();
   // 通过key 和 dir_page 找到桶的page_id
   page_id_t bucket_page_id = KeyToPageId(key, dir_page);
 
   HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
+  Page* page_lock = reinterpret_cast<Page *>(bucket_page);
 
-
+  page_lock->RLatch();
   // 拿到值，通过指针返回
   bool flag = bucket_page->GetValue(key, comparator_, result);
+  page_lock->RUnlatch();
 
   // unpin
   buffer_pool_manager_->UnpinPage(directory_page_id_, false);
   buffer_pool_manager_->UnpinPage(bucket_page_id, false);
-
+  table_latch_.RUnlock();
   return flag;
 }
 
@@ -120,6 +119,7 @@ bool HASH_TABLE_TYPE::GetValue(Transaction *transaction, const KeyType &key, std
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::Insert(Transaction *transaction, const KeyType &key, const ValueType &value) {
     bool flag;
+    table_latch_.RLock();
     HashTableDirectoryPage *dir_page = FetchDirectoryPage();
 
 //    // 获得全局散列深度
@@ -129,22 +129,33 @@ bool HASH_TABLE_TYPE::Insert(Transaction *transaction, const KeyType &key, const
     HASH_TABLE_BUCKET_TYPE *bucket_page = FetchBucketPage(bucket_page_id);
 
     // bucket_page 如果满了，则需要调用SplitInsert()为插入的k-v分配空间
-    if (bucket_page->IsFull()) {
-        buffer_pool_manager_->UnpinPage(bucket_page_id, false);
-        buffer_pool_manager_->UnpinPage(directory_page_id_, false);
-        return SplitInsert(transaction, key, value);
-    }
+    Page* page_lock = reinterpret_cast<Page *>(bucket_page);
 
-    // 如果没满，则插入-》刷盘
+//    if (bucket_page->IsFull()) {
+//        buffer_pool_manager_->UnpinPage(bucket_page_id, false);
+//        buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+//        return SplitInsert(transaction, key, value);
+//    }
+    // 如果没满，则插入--->>刷盘
+    // 如果有很多在这里锁住，其中一个插入成功后，bucket_page满了需要SplitInsert(),
+    // 所以在SplitInsert()前需要判断一下是否需要重新调用Insert();
+    page_lock->WLatch();
     flag = bucket_page->Insert(key, value, comparator_);
+    page_lock->WUnlatch();
     buffer_pool_manager_->UnpinPage(bucket_page_id, flag);
     buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+    table_latch_.RUnlock();
 
+    // 插入失败，调用SplitInsert()
+    if (!flag) {
+        return SplitInsert(transaction, key, value);
+    }
     return flag;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, const ValueType &value) {
+    table_latch_.RUnlock();
     HashTableDirectoryPage *dir_page = FetchDirectoryPage();
 
     bool flag = false;
@@ -155,6 +166,39 @@ bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, 
     uint32_t local_depth = dir_page->GetLocalDepth(bucket_idx);
     page_id_t bucket_page_id = dir_page->GetBucketPageId(bucket_idx);
     HASH_TABLE_BUCKET_TYPE *old_bucket_page = FetchBucketPage(bucket_page_id);
+
+    // 判断是否有重复数据
+    uint32_t free_pos = BUCKET_ARRAY_SIZE;
+    for (uint32_t i = 0; i < BUCKET_ARRAY_SIZE; ++i) {
+        if (free_pos == BUCKET_ARRAY_SIZE) {
+            if (!old_bucket_page->IsOccupied(i) && !old_bucket_page->IsReadable(i)) {
+                free_pos = i;
+            }
+        }
+        if (old_bucket_page->IsReadable(i) && comparator_(old_bucket_page->KeyAt(i), key) == 0 &&
+            old_bucket_page->ValueAt(i) == value) {
+            flag = true;
+            break;
+        }
+
+    }
+
+    // 判断是否重复,若重复调用Insert();
+    if (flag) {
+        buffer_pool_manager_->UnpinPage(bucket_page_id, is_free);
+        buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+        table_latch_.RUnlock();
+        return false;
+    }
+
+    if (free_pos != BUCKET_ARRAY_SIZE) {
+        buffer_pool_manager_->UnpinPage(bucket_page_id, is_free);
+        buffer_pool_manager_->UnpinPage(directory_page_id_, false);
+        table_latch_.RUnlock();
+        return Insert(transaction, key, value);
+    }
+
+
     // 初始化新分裂的bucket_page_id
     page_id_t new_bucket_page_id = INVALID_PAGE_ID;
     uint32_t new_bucket_idx;
@@ -246,7 +290,7 @@ bool HASH_TABLE_TYPE::SplitInsert(Transaction *transaction, const KeyType &key, 
         buffer_pool_manager_->UnpinPage(new_bucket_page_id, is_free);
     }
     buffer_pool_manager_->UnpinPage(directory_page_id_, true);
-
+    table_latch_.RUnlock();
     if (!flag) {
         return SplitInsert(transaction, key, value);
     }
