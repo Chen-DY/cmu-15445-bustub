@@ -1,3 +1,0 @@
-/root/cmu-15445-bustub/cmake-build-release-remote-host/googletest-download/CMakeFiles/rebuild_cache.dir
-/root/cmu-15445-bustub/cmake-build-release-remote-host/googletest-download/CMakeFiles/googletest.dir
-/root/cmu-15445-bustub/cmake-build-release-remote-host/googletest-download/CMakeFiles/edit_cache.dir

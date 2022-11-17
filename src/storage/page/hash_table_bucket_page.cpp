@@ -21,7 +21,6 @@ namespace bustub {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::GetValue(KeyType key, KeyComparator cmp, std::vector<ValueType> *result) {
-  // 这有一段废话，测试git
   for (uint32_t bucket_idx = 0; bucket_idx < BUCKET_ARRAY_SIZE; bucket_idx++) {
     auto now_key = array_[bucket_idx].first;
     if (IsReadable(bucket_idx) && cmp(now_key, key) == 0) {
@@ -59,14 +58,18 @@ bool HASH_TABLE_BUCKET_TYPE::Insert(KeyType key, ValueType value, KeyComparator 
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::Remove(KeyType key, ValueType value, KeyComparator cmp) {
+  // 删除即：把对应的readable对应位置为0
   for (uint32_t bucket_idx = 0; bucket_idx < BUCKET_ARRAY_SIZE; ++bucket_idx) {
     if (!IsOccupied(bucket_idx)) {
       break;
     }
     //    bool flag = IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value;
     if (IsReadable(bucket_idx) && cmp(KeyAt(bucket_idx), key) == 0 && ValueAt(bucket_idx) == value) {
+      // 找到在第几个字节处
       char &c = readable_[bucket_idx / 8];
+      // 找到在某个字节的某个位置，参考位示图
       uint32_t pos = bucket_idx % 8;
+      // c ^= ~(1 << (7 - pos))
       c &= ~(1 << (7 - pos));
       return true;
     }
@@ -85,22 +88,28 @@ ValueType HASH_TABLE_BUCKET_TYPE::ValueAt(uint32_t bucket_idx) const {
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
-void HASH_TABLE_BUCKET_TYPE::RemoveAt(uint32_t bucket_idx) {}
+void HASH_TABLE_BUCKET_TYPE::RemoveAt(uint32_t bucket_idx) {
+  char &c = readable_[bucket_idx / 8];
+  uint32_t pos = bucket_idx % 8;
+  c &= ~(1 << (7 - pos));
+}
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BUCKET_TYPE::IsOccupied(uint32_t bucket_idx) const {
+  // 判断对应位是否为1
   int x = static_cast<int>(occupied_[bucket_idx / 8]);
   uint32_t shift_bit = bucket_idx % 8;
   auto res = x >> (7 - shift_bit);
+  // (occupied_[bucket_idx / 8] & (1 << (7 - (bucket_idx % 8)))) != 0
   return (res & 0x1) == 0x1;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 void HASH_TABLE_BUCKET_TYPE::SetOccupied(uint32_t bucket_idx) {
+  // 把对应位置为1
   char x = static_cast<char>(occupied_[bucket_idx / 8]);
   uint32_t shift_bit = bucket_idx % 8;
-  // 0x1左移和 1左移结果相同吗？
-  occupied_[bucket_idx / 8] = (1 << (7 - shift_bit)) | x;
+  occupied_[bucket_idx / 8] = (0x1 << (7 - shift_bit)) | x;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
@@ -115,7 +124,7 @@ template <typename KeyType, typename ValueType, typename KeyComparator>
 void HASH_TABLE_BUCKET_TYPE::SetReadable(uint32_t bucket_idx) {
   char x = static_cast<char>(readable_[bucket_idx / 8]);
   uint32_t shift_bit = bucket_idx % 8;
-  readable_[bucket_idx / 8] = (1 << (7 - shift_bit)) | x;
+  readable_[bucket_idx / 8] = (0x1 << (7 - shift_bit)) | x;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>

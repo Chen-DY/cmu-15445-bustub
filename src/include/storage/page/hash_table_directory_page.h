@@ -61,7 +61,7 @@ class HashTableDirectoryPage {
    * Lookup a bucket page using a directory index
    *
    * @param bucket_idx the index in the directory to lookup
-   * @return bucket page_id corresponding to bucket_idx
+   * @return bucket page_id corresponding to bucket_igit dx
    */
   page_id_t GetBucketPageId(uint32_t bucket_idx);
 
@@ -187,10 +187,12 @@ class HashTableDirectoryPage {
   void PrintDirectory();
 
  private:
-  page_id_t page_id_;
+  page_id_t page_id_;  // 自身的page_id
   lsn_t lsn_;
-  uint32_t global_depth_{0};
+  uint32_t global_depth_{0};  // 全局散列深度
+  // 局部散列数组，保存了每一个桶的散列深度
   uint8_t local_depths_[DIRECTORY_ARRAY_SIZE];
+  // 保存每个桶的page_id
   page_id_t bucket_page_ids_[DIRECTORY_ARRAY_SIZE];
 };
 

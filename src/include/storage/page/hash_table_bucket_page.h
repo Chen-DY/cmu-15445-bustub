@@ -139,9 +139,12 @@ class HashTableBucketPage {
 
  private:
   //  For more on BUCKET_ARRAY_SIZE see storage/page/hash_table_page_defs.h
+  // 一个char占8位，每一位对应桶中的数据是否被占用。这个数组的作用是优化哈希初始化的效率。
+  // (BUCKET_ARRAY_SIZE - 1) / 8 + 1 向上取整,确保分配足够的空间
   char occupied_[(BUCKET_ARRAY_SIZE - 1) / 8 + 1];
   // 0 if tombstone/brand new (never occupied), 1 otherwise.
   char readable_[(BUCKET_ARRAY_SIZE - 1) / 8 + 1];
+  // MappingType是一个键值对，保存(key, value)
   MappingType array_[0];
 };
 

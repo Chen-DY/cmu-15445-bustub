@@ -1,124 +1,3 @@
-// //===----------------------------------------------------------------------===//
-// //
-// //                         BusTub
-// //
-// // hash_table_test.cpp
-// //
-// // Identification: test/container/hash_table_test.cpp
-// //
-// // Copyright (c) 2015-2021, Carnegie Mellon University Database Group
-// //
-// //===----------------------------------------------------------------------===//
-
-// #include <thread>  // NOLINT
-// #include <vector>
-
-// #include "buffer/buffer_pool_manager_instance.h"
-// #include "common/logger.h"
-// #include "container/hash/extendible_hash_table.h"
-// #include "gtest/gtest.h"
-// #include "murmur3/MurmurHash3.h"
-
-// namespace bustub {
-
-// // NOLINTNEXTLINE
-
-// // NOLINTNEXTLINE
-// TEST(HashTableTest, SampleTest) {
-//   auto *disk_manager = new DiskManager("test.db");
-//   auto *bpm = new BufferPoolManagerInstance(50, disk_manager);
-//   ExtendibleHashTable<int, int, IntComparator> ht("blah", bpm, IntComparator(), HashFunction<int>());
-
-//   // insert a few values
-//   for (int i = 0; i < 5; i++) {
-//     ht.Insert(nullptr, i, i);
-//     std::vector<int> res;
-//     ht.GetValue(nullptr, i, &res);
-//     EXPECT_EQ(1, res.size()) << "Failed to insert " << i << std::endl;
-//     EXPECT_EQ(i, res[0]);
-//   }
-
-//   ht.VerifyIntegrity();
-
-//   // check if the inserted values are all there
-//   for (int i = 0; i < 5; i++) {
-//     std::vector<int> res;
-//     ht.GetValue(nullptr, i, &res);
-//     EXPECT_EQ(1, res.size()) << "Failed to keep " << i << std::endl;
-//     EXPECT_EQ(i, res[0]);
-//   }
-
-//   ht.VerifyIntegrity();
-
-//   // insert one more value for each key
-//   for (int i = 0; i < 5; i++) {
-//     if (i == 0) {
-//       // duplicate values for the same key are not allowed
-//       EXPECT_FALSE(ht.Insert(nullptr, i, 2 * i));
-//     } else {
-//       EXPECT_TRUE(ht.Insert(nullptr, i, 2 * i));
-//     }
-//     ht.Insert(nullptr, i, 2 * i);
-//     std::vector<int> res;
-//     ht.GetValue(nullptr, i, &res);
-//     if (i == 0) {
-//       // duplicate values for the same key are not allowed
-//       EXPECT_EQ(1, res.size());
-//       EXPECT_EQ(i, res[0]);
-//     } else {
-//       EXPECT_EQ(2, res.size());
-//       if (res[0] == i) {
-//         EXPECT_EQ(2 * i, res[1]);
-//       } else {
-//         EXPECT_EQ(2 * i, res[0]);
-//         EXPECT_EQ(i, res[1]);
-//       }
-//     }
-//   }
-
-//   ht.VerifyIntegrity();
-
-//   // look for a key that does not exist
-//   std::vector<int> res;
-//   ht.GetValue(nullptr, 20, &res);
-//   EXPECT_EQ(0, res.size());
-
-//   // delete some values
-//   for (int i = 0; i < 5; i++) {
-//     EXPECT_TRUE(ht.Remove(nullptr, i, i));
-//     std::vector<int> res;
-//     ht.GetValue(nullptr, i, &res);
-//     if (i == 0) {
-//       // (0, 0) is the only pair with key 0
-//       EXPECT_EQ(0, res.size());
-//     } else {
-//       EXPECT_EQ(1, res.size());
-//       EXPECT_EQ(2 * i, res[0]);
-//     }
-//   }
-
-//   ht.VerifyIntegrity();
-
-//   // delete all values
-//   for (int i = 0; i < 5; i++) {
-//     if (i == 0) {
-//       // (0, 0) has been deleted
-//       EXPECT_FALSE(ht.Remove(nullptr, i, 2 * i));
-//     } else {
-//       EXPECT_TRUE(ht.Remove(nullptr, i, 2 * i));
-//     }
-//   }
-
-//   ht.VerifyIntegrity();
-
-//   disk_manager->ShutDown();
-//   remove("test.db");
-//   delete disk_manager;
-//   delete bpm;
-// }
-
-// }  // namespace bustub
-
 //===----------------------------------------------------------------------===//
 //
 //                         BusTub
@@ -131,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <iostream>
 #include <thread>  // NOLINT
 #include <vector>
 
@@ -428,34 +306,15 @@ void SplitGrowTestCall(KeyType k /* unused */, ValueType v /* unused */, KeyComp
   auto *bpm = new BufferPoolManagerInstance(4, disk_manager);
   ExtendibleHashTable<KeyType, ValueType, KeyComparator> ht("blah", bpm, comparator, HashFunction<KeyType>());
 
-  // i < 500
   for (int i = 0; i < 500; i++) {
     auto key = GetKey<KeyType>(i);
     auto value = GetValue<ValueType>(i);
     EXPECT_TRUE(ht.Insert(nullptr, key, value));
     std::vector<ValueType> res;
     EXPECT_TRUE(ht.GetValue(nullptr, key, &res));
-    // std::cout<< "debug1----------" << res[0] <<std::endl;
     EXPECT_EQ(1, res.size()) << "Failed to insert " << i << std::endl;
     EXPECT_EQ(value, res[0]);
   }
-  // auto key = GetKey<KeyType>(496);
-  // auto value = GetValue<ValueType>(496);
-  // EXPECT_TRUE(ht.Insert(nullptr, key, value));
-  // std::vector<ValueType> res;
-  // EXPECT_TRUE(ht.GetValue(nullptr, key, &res));
-  // std::cout<< "debug1----------" << res[0] <<std::endl;
-  // EXPECT_EQ(1, res.size()) << "Failed to insert " << 496 << std::endl;
-  // EXPECT_EQ(value, res[0]);
-
-  // auto key = GetKey<KeyType>(497);
-  // auto value = GetValue<ValueType>(497);
-  // EXPECT_TRUE(ht.Insert(nullptr, key, value));
-  // std::vector<ValueType> res;
-  // EXPECT_TRUE(ht.GetValue(nullptr, key, &res));
-  // std::cout<< "debug1----------" << res[0] <<std::endl;
-  // EXPECT_EQ(1, res.size()) << "Failed to insert " << 497 << std::endl;
-  // EXPECT_EQ(value, res[0]);
 
   ht.VerifyIntegrity();
 
@@ -464,7 +323,6 @@ void SplitGrowTestCall(KeyType k /* unused */, ValueType v /* unused */, KeyComp
     auto value = GetValue<ValueType>(i);
     std::vector<ValueType> res;
     EXPECT_TRUE(ht.GetValue(nullptr, key, &res));
-    // std::cout<< "debug2----------" << res[0] << std::endl;
     EXPECT_EQ(1, res.size()) << "Failed to insert " << i << std::endl;
     EXPECT_EQ(value, res[0]);
   }
@@ -558,7 +416,6 @@ void GrowShrinkTestCall(KeyType k /* unused */, ValueType v /* unused */, KeyCom
     ht.Remove(nullptr, key, value);
     std::vector<ValueType> res;
     EXPECT_FALSE(ht.GetValue(nullptr, key, &res));
-
     EXPECT_EQ(0, res.size()) << "Found non-existent key " << i << std::endl;
   }
 
@@ -609,15 +466,11 @@ TEST(HashTableTest, RemoveTest) {
 
 TEST(HashTableTest, SplitGrowTest) {
   SplitGrowTestCall(1, 1, IntComparator());
-  // std::cout << "0000000000000000000000000000" << std::endl;
+
   GenericTestCall<GenericKey<8>, RID, GenericComparator<8>>(SplitGrowTestCall);
-  // std::cout << "1111111111111111111111111111" << std::endl;
   GenericTestCall<GenericKey<16>, RID, GenericComparator<16>>(SplitGrowTestCall);
-  // std::cout << "2222222222222222222222222222" << std::endl;
   GenericTestCall<GenericKey<32>, RID, GenericComparator<32>>(SplitGrowTestCall);
-  // std::cout << "3333333333333333333333333333" << std::endl;
   GenericTestCall<GenericKey<64>, RID, GenericComparator<64>>(SplitGrowTestCall);
-  // std::cout << "5555555555555555555555555555" << std::endl;
 }
 
 TEST(HashTableTest, GrowShrinkTest) {
